@@ -41,6 +41,11 @@ private:
 	void SetNeighborhood(int Value, FIntVector2 Cell);
 	void InitialStrCheck();
 	void SecondStrCheck();
+	void CreateRooms();
+	void AddCellToRoom(int RoomIndex, FDungeonCell* CellToAdd);
+	void CreateNewRoom(FDungeonCell* Cell);
+	void RoomCleanUp();
+	void RoomMerge(int MainRoomIndex, int SmallRoomIndex);
 	void SpawnCubes();
 
 
@@ -48,6 +53,10 @@ private:
 	void checkIfThereIsASeed();
 	float GetRandomFloat();
 	int GetRandomIntInRange(int Min, int Max);
+
+	TArray<FDungeonRoom> DungeonRooms;
+	int RoomsInGrid;
+	int RoomsMerged;
 	
 
 };

@@ -11,6 +11,8 @@ struct DISDUNGEONGEN_API FDungeonCellNeighb
  GENERATED_BODY()
  int CellRoomType;
  int CellStrength;
+ bool IsInRoom;
+ int RoomID;
  FIntVector2 CellPos;
 
  
@@ -24,10 +26,18 @@ struct DISDUNGEONGEN_API FDungeonCell
  int CellStrength;
  FIntVector2 CellPos;
  int NeighbNum;
+ bool IsInRoom;
+ int RoomID;
  TArray<FDungeonCellNeighb> Neighbours;
-	
+};
 
+USTRUCT()
+struct FDungeonRoom
+{
+ GENERATED_BODY()
+ int RoomID;
+ int RoomType;
  
+ TArray<FDungeonCell> Room;
  
-
 };
