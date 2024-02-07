@@ -21,6 +21,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	int GlobalSeed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
+	int MinRoomSizeByCell;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
+	int MaxRoomSizeByCell;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	TArray<TSubclassOf<AActor>> CubeList;
 
 protected:
@@ -45,7 +49,10 @@ private:
 	void AddCellToRoom(int RoomIndex, FDungeonCell* CellToAdd);
 	void CreateNewRoom(FDungeonCell* Cell);
 	void RoomCleanUp();
+	void SmallRoomCleanUp();
 	void RoomMerge(int MainRoomIndex, int SmallRoomIndex);
+
+	void StartPathFinding();
 	void SpawnCubes();
 
 

@@ -27,6 +27,7 @@ void ADungeonGenerator::BeginPlay()
 	//InitialStrCheck();
 	CreateRooms();
 	RoomCleanUp();
+	SmallRoomCleanUp();
 	UE_LOG(LogTemp, Warning, TEXT("There are : %d"),RoomsInGrid);
 	//UE_LOG(LogTemp, Warning, TEXT("There are this many rooms : %d"),DungeonRooms.Num());
 	UE_LOG(LogTemp, Warning, TEXT("these many rooms have merged : %d"),RoomsMerged);
@@ -380,6 +381,74 @@ void ADungeonGenerator::RoomCleanUp()
 	}
 }
 
+void ADungeonGenerator::SmallRoomCleanUp()
+{
+	for(int x = 0; x < GridSize; x++ )
+	{
+		for(int y = 0; y < GridSize; y++)
+		{
+			for(int i = 0; i < TheGrid[x][y].Neighbours.Num(); i++)
+			{
+				int tempX = TheGrid[x][y].Neighbours[i].CellPos.X;
+				int tempY = TheGrid[x][y].Neighbours[i].CellPos.Y;
+				int RoomOneID = TheGrid[x][y].RoomID;
+				int RoomOneIndex;
+				int RoomTwoIndex;
+				
+				int RoomTwoID = TheGrid[tempX][tempY].RoomID;
+				if(RoomOneID != RoomTwoID)
+				{
+					for(int q = 0; q < DungeonRooms.Num();q++)
+					{
+						if(DungeonRooms[q].RoomID == RoomOneID)
+						{
+							RoomOneIndex = q;
+						}
+						else if(DungeonRooms[q].RoomID == RoomTwoID)
+						{
+							RoomTwoIndex = q;
+						}
+					}
+
+					if(RoomOneIndex == RoomTwoIndex)
+					{
+						continue;
+					}
+					FDungeonRoom &RoomOneRef = DungeonRooms[RoomOneIndex];
+					FDungeonRoom &RoomTwoRef = DungeonRooms[RoomTwoIndex];
+
+					if(RoomOneRef.Room.Num() < MinRoomSizeByCell || RoomTwoRef.Room.Num() < MinRoomSizeByCell)
+					{
+						if(RoomOneRef.Room.Num() >= RoomTwoRef.Room.Num())
+						{
+							RoomMerge(RoomOneIndex,RoomTwoIndex);
+						}
+						else
+						{
+							RoomMerge(RoomTwoIndex,RoomOneIndex);
+						}/*
+						if(RoomOneRef.Room.Num() < MaxRoomSizeByCell && RoomTwoRef.Room.Num() < MaxRoomSizeByCell)
+						{
+							if(RoomOneRef.Room.Num() >= RoomTwoRef.Room.Num())
+							{
+								RoomMerge(RoomOneIndex,RoomTwoIndex);
+							}
+							else
+							{
+								RoomMerge(RoomTwoIndex,RoomOneIndex);
+							}
+						}*/
+					}
+
+					
+				}
+
+				
+			}
+		}
+	}
+}
+
 void ADungeonGenerator::RoomMerge(int MainRoomIndex, int SmallRoomIndex)
 {
 	TArray<FDungeonCell> TempRoomList;
@@ -427,6 +496,19 @@ void ADungeonGenerator::SpawnCubes()
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = GetInstigator();
+
+		for(int i = 0; i < DungeonRooms.Num();i++)
+		{
+			for(int o = 0; o < DungeonRooms[i].Room.Num();o++)
+			{
+				int x = DungeonRooms[i].Room[o].CellPos.X;
+				int y = DungeonRooms[i].Room[o].CellPos.Y;
+				FVector SpawnLocation = FVector(x*100,y*100 ,0);
+				FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
+				World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
+			}
+		}
+		/*
 		for(int x = 0; x < GridSize; x++)
 		{
 			for(int y = 0; y < GridSize; y++)
@@ -438,11 +520,11 @@ void ADungeonGenerator::SpawnCubes()
 				FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
 				if(CubeList[TheGrid[x][y].CellRoomType-1] >= 0)
 				{
-					World->SpawnActor<AActor>(CubeList[TheGrid[x][y].CellRoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
+					//World->SpawnActor<AActor>(DungeonRooms[TheGrid[x][y]. -1], SpawnLocation, SpawnRotation, SpawnParams);
 				}
 				//UE_LOG(LogTemp, Warning, TEXT("spawning room : %d %d"), x,y);
 			}
-		}
+		}*/
 	}
 }
 
