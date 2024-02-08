@@ -28,9 +28,33 @@ void ADungeonGenerator::BeginPlay()
 	CreateRooms();
 	RoomCleanUp();
 	SmallRoomCleanUp();
-	UE_LOG(LogTemp, Warning, TEXT("There are : %d"),RoomsInGrid);
+	RoomAdjacentCheck();
+	MinRoomAdjacentCleanUp();
+	SetRoomPos();
+	//UE_LOG(LogTemp, Warning, TEXT("There are : %d"),RoomsInGrid);
 	//UE_LOG(LogTemp, Warning, TEXT("There are this many rooms : %d"),DungeonRooms.Num());
-	UE_LOG(LogTemp, Warning, TEXT("these many rooms have merged : %d"),RoomsMerged);
+	//UE_LOG(LogTemp, Warning, TEXT("these many rooms have merged : %d"),RoomsMerged);
+	PickStartAndEndRooms();
+	RoomNeighbourUpdate();
+	for(int i = 0; i < DungeonRooms.Num(); i++)
+	{
+		RoomMergedAdjChec(i);
+		UE_LOG(LogTemp, Warning, TEXT("Room: %d has: %d adjacent rooms"),i, DungeonRooms[i].NumOfAdjacentRooms);
+		
+	}
+	RoomNeighbourUpdate();
+/*
+	for(int x = 0; x < TheGrid.Num(); x++)
+	{
+		for (int y = 0; y < TheGrid.Num(); y++)
+		{
+			for(int i = 0; i < TheGrid[x][y].Neighbours.Num(); i++)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Cell %d %d Has the roomID of %d its listed Neighbour %d has the RoomID %d while the Grid version has the ID of %d "),x,y,TheGrid[x][y].RoomID,i,TheGrid[x][y].Neighbours[i].RoomID, TheGrid[TheGrid[x][y].Neighbours[i].CellPos.X][TheGrid[x][y].Neighbours[i].CellPos.Y].RoomID);
+			}
+			
+		}
+	}*/
 	SpawnCubes();
 	
 }
@@ -135,7 +159,7 @@ void ADungeonGenerator::SetNeighborhood(int Value,  FIntVector2 Cell)
 	
 	if(Cell.Y - 1 >= 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("y - 1"));
+		//UE_LOG(LogTemp, Warning, TEXT("y - 1"));
 		TempOne.CellPos.X = Cell.X;
 		TempOne.CellPos.Y = Cell.Y - 1;
 		TempOne.CellStrength = TheGrid[Cell.X][Cell.Y-1].CellStrength;
@@ -147,7 +171,7 @@ void ADungeonGenerator::SetNeighborhood(int Value,  FIntVector2 Cell)
 	}
 	if(Cell.Y + 1 <= GridSize-1)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("y + 1"));
+		//UE_LOG(LogTemp, Warning, TEXT("y + 1"));
 		TempTwo.CellPos.X = Cell.X;
 		TempTwo.CellPos.Y = Cell.Y + 1;
 		TempTwo.CellStrength = TheGrid[Cell.X][Cell.Y+1].CellStrength;
@@ -159,7 +183,7 @@ void ADungeonGenerator::SetNeighborhood(int Value,  FIntVector2 Cell)
 	}
 	if(Cell.X - 1 >= 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("x - 1"));
+		//UE_LOG(LogTemp, Warning, TEXT("x - 1"));
 		TempThree.CellPos.X = Cell.X-1;
 		TempThree.CellPos.Y = Cell.Y;
 		TempThree.CellStrength = TheGrid[Cell.X-1][Cell.Y].CellStrength;
@@ -171,7 +195,7 @@ void ADungeonGenerator::SetNeighborhood(int Value,  FIntVector2 Cell)
 	}
 	if(Cell.X + 1 <= GridSize-1)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("x + 1"));
+		//UE_LOG(LogTemp, Warning, TEXT("x + 1"));
 		TempFour.CellPos.X = Cell.X+1;
 		TempFour.CellPos.Y = Cell.Y;
 		TempFour.CellStrength = TheGrid[Cell.X+1][Cell.Y].CellStrength;
@@ -449,6 +473,145 @@ void ADungeonGenerator::SmallRoomCleanUp()
 	}
 }
 
+void ADungeonGenerator::RoomAdjacentCheck()
+{
+	for(int r = 0; r < DungeonRooms.Num(); r++)
+	{
+		RoomMergedAdjChec(r);
+	}
+}
+
+void ADungeonGenerator::MinRoomAdjacentCleanUp()
+{
+	if(DungeonRooms.Num() <= 3)
+	{
+		return;
+	}
+	for(int r = 0; r < DungeonRooms.Num(); r++)
+	{
+		if(DungeonRooms[r].NumOfAdjacentRooms <= 2)
+		{
+			int RoomID;// = DungeonRooms[r].RoomID;
+			for(int c = 0; c < DungeonRooms[r].Room.Num(); c++)
+			{
+				RoomID = TheGrid[DungeonRooms[r].Room[c].CellPos.X][DungeonRooms[r].Room[c].CellPos.Y].RoomID;
+				int OtherRoomIndex;
+				bool RoomFound = false;
+				int OtherRoomID;
+				for(int a = 0; a < DungeonRooms[r].Room[c].Neighbours.Num(); a++)
+				{
+					OtherRoomID = TheGrid[DungeonRooms[r].Room[c].Neighbours[a].CellPos.X][DungeonRooms[r].Room[c].Neighbours[a].CellPos.X].RoomID;
+					if(RoomID != OtherRoomID)
+					{
+						//OtherRoomID = DungeonRooms[r].Room[c].Neighbours[a].RoomID;
+											
+						for(int q = 0; q < DungeonRooms.Num(); q++)
+						{
+							if(DungeonRooms[q].RoomID == OtherRoomID)
+							{
+								OtherRoomIndex = q;
+								RoomFound = true;
+								break;
+							}
+						}
+						break;
+						
+						
+					}
+				}
+				//
+				if(RoomFound)
+				{
+					RoomMerge(OtherRoomIndex, r);
+					r--;
+					for(int h = 0; h < DungeonRooms.Num(); h++)
+					{
+						if(DungeonRooms[h].RoomID == OtherRoomID)
+						{
+							RoomMergedAdjChec(h);
+						}
+					}
+					break;
+				}
+			}
+		}
+	}
+}
+
+void ADungeonGenerator::RoomMergedAdjChec(int roomIndex)
+{
+	//int CurrentRoomID = TheGrid[]
+		//DungeonRooms[roomIndex].RoomID;
+	TArray<int> SeenRoomIDs;
+	UE_LOG(LogTemp, Warning, TEXT("room: %d seen rooms inital set to: %d "),roomIndex, SeenRoomIDs.Num());
+	SeenRoomIDs.Empty();
+	for(int i = 0; i < DungeonRooms[roomIndex].Room.Num(); i++)
+	{
+		int CurrentRoomID = TheGrid[DungeonRooms[roomIndex].Room[i].CellPos.X][DungeonRooms[roomIndex].Room[i].CellPos.Y].RoomID;
+		for(int a = 0; a < DungeonRooms[roomIndex].Room[i].Neighbours.Num(); a++)
+		{
+			
+			int AdjRoomID = TheGrid[DungeonRooms[roomIndex].Room[i].Neighbours[a].CellPos.X][DungeonRooms[roomIndex].Room[i].Neighbours[a].CellPos.Y].RoomID;
+				//DungeonRooms[roomIndex].Room[i].Neighbours[a].RoomID;
+			if(AdjRoomID != CurrentRoomID)
+			{
+				bool RoomSeen = false;
+
+				for(int k = 0; k < SeenRoomIDs.Num(); k++)
+				{
+					if(SeenRoomIDs[k] == AdjRoomID)
+					{
+						RoomSeen = true;
+					}
+				}
+				if(!RoomSeen)
+				{
+					SeenRoomIDs.Add(AdjRoomID);
+				}
+			}
+		}
+	}
+	DungeonRooms[roomIndex].NumOfAdjacentRooms = SeenRoomIDs.Num();
+	UE_LOG(LogTemp, Warning, TEXT("room: %d seen rooms end set to: %d "),roomIndex, SeenRoomIDs.Num());
+			
+}
+
+void ADungeonGenerator::RoomNeighbourUpdate()
+{
+	for(int x = 0; x < TheGrid.Num(); x++)
+	{
+		for(int y = 0; y < TheGrid.Num(); y++)
+		{
+			for(int i = 0; i < TheGrid[x][y].Neighbours.Num();i++)
+			{
+				int Nx = TheGrid[x][y].Neighbours[i].CellPos.X;
+				int Ny = TheGrid[x][y].Neighbours[i].CellPos.Y;
+				TheGrid[x][y].Neighbours[i].RoomID = TheGrid[Nx][Ny].RoomID;
+				TheGrid[x][y].Neighbours[i].CellRoomType = TheGrid[Nx][Ny].CellRoomType;
+			}
+		}
+	}
+}
+
+void ADungeonGenerator::SetRoomPos()
+{
+	
+	for(int i = 0; i < DungeonRooms.Num();i++)
+	{
+		float AveX = 0;
+		float AveY = 0;
+		int AveDiv = 0;
+		for(int p = 0; p < DungeonRooms[i].Room.Num(); p++)
+		{
+			AveDiv++;
+			AveX += DungeonRooms[i].Room[p].CellPos.X;
+			AveY += DungeonRooms[i].Room[p].CellPos.Y;
+		}
+
+		DungeonRooms[i].AverageRoomPos = FVector2D(AveX/AveDiv, AveY/AveDiv);
+	}
+}
+
 void ADungeonGenerator::RoomMerge(int MainRoomIndex, int SmallRoomIndex)
 {
 	TArray<FDungeonCell> TempRoomList;
@@ -467,11 +630,61 @@ void ADungeonGenerator::RoomMerge(int MainRoomIndex, int SmallRoomIndex)
 	for(int i = 0; i < TempRoomList.Num(); i++)
 	{
 		TheGrid[TempRoomList[i].CellPos.X][TempRoomList[i].CellPos.Y].RoomID = DungeonRooms[MainRoomIndex].RoomID;
+		TheGrid[TempRoomList[i].CellPos.X][TempRoomList[i].CellPos.Y].CellRoomType = DungeonRooms[MainRoomIndex].RoomType;
+		for(int q = 0; q < TheGrid[TempRoomList[i].CellPos.X][TempRoomList[i].CellPos.Y].Neighbours.Num(); q++)
+		{
+			//TheGrid[TempRoomList[i].CellPos.X][TempRoomList[i].CellPos.Y].Neighbours[q].RoomID = DungeonRooms[MainRoomIndex].RoomID;
+			//TheGrid[TempRoomList[i].CellPos.X][TempRoomList[i].CellPos.Y].Neighbours[q].CellRoomType = DungeonRooms[MainRoomIndex].RoomType;
+
+			
+		}
 	}
+
+	
 	RoomsInGrid--;
 	RoomsMerged++;
 	DungeonRooms[MainRoomIndex].Room = TempRoomList;
 	DungeonRooms.RemoveAt(SmallRoomIndex);
+	RoomNeighbourUpdate();
+}
+
+void ADungeonGenerator::PickStartAndEndRooms()
+{
+	StartRoomID = GetRandomIntInRange(0,DungeonRooms.Num()-1);
+	int StartRoomIndex = 0;
+	for(int i = 0; i < DungeonRooms.Num(); i++)
+	{
+		if(DungeonRooms[i].RoomID == StartRoomID)
+		{
+			StartRoomIndex = i;
+			//FDungeonRoom &StartRoom = DungeonRooms[i];
+			break;
+		}
+	}
+	FDungeonRoom &StartRoom = DungeonRooms[StartRoomIndex];
+	FVector2D StartPos = StartRoom.AverageRoomPos;
+	//FDungeonRoom &StartRoom = DungeonRooms[]
+	TArray<int> RoomsAllowed;
+
+	for(int i = 0; i < DungeonRooms.Num(); i++)
+	{
+		float Dis = FVector2D::Distance(StartPos,DungeonRooms[i].AverageRoomPos);
+		if(Dis >= MinDistBetweenStartAndEnd)
+		{
+			RoomsAllowed.Add(i);
+		}
+	}
+	//UE_LOG(LogTemp, Warning, TEXT("the number of rooms allowed to be the end point are : %d"),RoomsAllowed.Num());
+
+	EndRoomID = RoomsAllowed[GetRandomIntInRange(0, RoomsAllowed.Num()-1)];
+	
+
+	
+}
+
+void ADungeonGenerator::StartPathFinding()
+{
+	
 }
 
 bool ADungeonGenerator::StrCheck(int x, int y, int Nx, int Ny)
@@ -503,28 +716,12 @@ void ADungeonGenerator::SpawnCubes()
 			{
 				int x = DungeonRooms[i].Room[o].CellPos.X;
 				int y = DungeonRooms[i].Room[o].CellPos.Y;
-				FVector SpawnLocation = FVector(x*100,y*100 ,0);
+				FVector SpawnLocation = FVector(x*100,y*100 ,10*i);
 				FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
 				World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
 			}
 		}
-		/*
-		for(int x = 0; x < GridSize; x++)
-		{
-			for(int y = 0; y < GridSize; y++)
-			{
-				
-				
-
-				FVector SpawnLocation = FVector(x*100,y*100 ,0);
-				FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
-				if(CubeList[TheGrid[x][y].CellRoomType-1] >= 0)
-				{
-					//World->SpawnActor<AActor>(DungeonRooms[TheGrid[x][y]. -1], SpawnLocation, SpawnRotation, SpawnParams);
-				}
-				//UE_LOG(LogTemp, Warning, TEXT("spawning room : %d %d"), x,y);
-			}
-		}*/
+		
 	}
 }
 

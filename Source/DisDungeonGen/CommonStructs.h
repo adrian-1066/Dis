@@ -37,7 +37,9 @@ struct FDungeonRoom
  GENERATED_BODY()
  int RoomID;
  int RoomType;
- 
+ int NumOfAdjacentRooms;
  TArray<FDungeonCell> Room;
+
+ FVector2D AverageRoomPos;
  
 };

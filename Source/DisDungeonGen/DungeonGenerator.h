@@ -26,6 +26,8 @@ public:
 	int MaxRoomSizeByCell;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	TArray<TSubclassOf<AActor>> CubeList;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
+	float MinDistBetweenStartAndEnd;
 
 protected:
 	// Called when the game starts or when spawned
@@ -50,8 +52,16 @@ private:
 	void CreateNewRoom(FDungeonCell* Cell);
 	void RoomCleanUp();
 	void SmallRoomCleanUp();
-	void RoomMerge(int MainRoomIndex, int SmallRoomIndex);
+	void RoomAdjacentCheck();
+	void MinRoomAdjacentCleanUp();
+	void RoomMergedAdjChec(int roomIndex);
 
+	void RoomNeighbourUpdate();
+	void SetRoomPos();
+	void RoomMerge(int MainRoomIndex, int SmallRoomIndex);
+	
+
+	void PickStartAndEndRooms();
 	void StartPathFinding();
 	void SpawnCubes();
 
@@ -64,6 +74,8 @@ private:
 	TArray<FDungeonRoom> DungeonRooms;
 	int RoomsInGrid;
 	int RoomsMerged;
+	int StartRoomID;
+	int EndRoomID;
 	
 
 };
