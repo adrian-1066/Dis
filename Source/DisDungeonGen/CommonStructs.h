@@ -14,7 +14,7 @@ struct DISDUNGEONGEN_API FDungeonCellNeighb
  bool IsInRoom;
  int RoomID;
  FIntVector2 CellPos;
-
+ bool IsWall;
  
 };
 
@@ -29,6 +29,7 @@ struct DISDUNGEONGEN_API FDungeonCell
  bool IsInRoom;
  int RoomID;
  TArray<FDungeonCellNeighb> Neighbours;
+ bool IsWall;
 };
 
 USTRUCT()
@@ -38,8 +39,10 @@ struct FDungeonRoom
  int RoomID;
  int RoomType;
  int NumOfAdjacentRooms;
+ int NumOfUsableCells;
+ int NumOfWallCells;
  TArray<FDungeonCell> Room;
-
+ TArray<int> AdjRoomIDs;
  FVector2D AverageRoomPos;
  
 };

@@ -27,6 +27,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	TArray<TSubclassOf<AActor>> CubeList;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
+	TArray<TSubclassOf<AActor>> WallList;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	float MinDistBetweenStartAndEnd;
 
 protected:
@@ -58,12 +60,15 @@ private:
 	void RoomMergedAdjChec(int roomIndex);
 
 	void RoomNeighbourUpdate();
+
+	void RoomWallSet();
 	void SetRoomPos();
 	void RoomMerge(int MainRoomIndex, int SmallRoomIndex);
 	
 
 	void PickStartAndEndRooms();
 	void StartPathFinding();
+	int NextRoomInPath(int CurrentRoomID);
 	void SpawnCubes();
 
 
