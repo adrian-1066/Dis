@@ -54,6 +54,7 @@ private:
 	void SmallRoomCleanUp();
 	void RoomAdjacentCheck();
 	void MinRoomAdjacentCleanUp();
+	void ReveseMinRoomCleanUp();
 	void RoomMergedAdjChec(int roomIndex);
 
 	void RoomNeighbourUpdate();
