@@ -69,6 +69,7 @@ private:
 	void PickStartAndEndRooms();
 	void StartPathFinding();
 	int NextRoomInPath(int CurrentRoomID);
+	bool IsNextRoomAllowed(int CurrentRoomIndex);
 	void SpawnCubes();
 
 
@@ -78,10 +79,15 @@ private:
 	int GetRandomIntInRange(int Min, int Max);
 
 	TArray<FDungeonRoom> DungeonRooms;
+	TArray<int> PathStack;
+	TArray<int> RoomsToIgnore;
+	bool PathAtEndPoint;
 	int RoomsInGrid;
 	int RoomsMerged;
 	int StartRoomID;
 	int EndRoomID;
+	int NumOfRoomsInCurrentPath;
+	int MinNumberOfRoomsAllowedInPath;
 	
 
 };

@@ -4,6 +4,8 @@
 #include "DungeonGenerator.h"
 
 #include <SceneExport.h>
+
+#include "EngineUtils.h"
 //#include "Math/UnrealMathUtility.h"
 // Sets default values
 ADungeonGenerator::ADungeonGenerator()
@@ -43,6 +45,11 @@ void ADungeonGenerator::BeginPlay()
 	//UE_LOG(LogTemp, Warning, TEXT("There are this many rooms : %d"),DungeonRooms.Num());
 	//UE_LOG(LogTemp, Warning, TEXT("these many rooms have merged : %d"),RoomsMerged);
 	PickStartAndEndRooms();
+	StartPathFinding();
+	for(int i  = 0; i < DungeonRooms.Num();i++)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Room at index %d has this many adj rooms %d"),i, DungeonRooms[i].AdjRoomIDs.Num());
+	}
 	
 	/*
 	for(int i = 0; i < DungeonRooms.Num(); i++)
@@ -78,6 +85,7 @@ void ADungeonGenerator::BeginPlay()
 			}
 		}
 	}*/
+	/*
 	for(int i = 0; i < DungeonRooms.Num(); i++)
 	{
 		for(int p  = 0; p < DungeonRooms[i].Room.Num(); p++)
@@ -91,7 +99,7 @@ void ADungeonGenerator::BeginPlay()
 				UE_LOG(LogTemp, Warning, TEXT("room %d Cell %d is NOT wall"),i, p); 
 			}
 		}
-	}
+	}*/
 	SpawnCubes();
 	
 }
@@ -535,7 +543,7 @@ void ADungeonGenerator::MinRoomAdjacentCleanUp()
 	for(int r = 0; r < DungeonRooms.Num(); r++)
 	{
 		RoomMergedAdjChec(r);
-		UE_LOG(LogTemp, Warning, TEXT("room %d has %d adjacent rooms this is itteration %d the current itteration is %d "),DungeonRooms[r].RoomID, DungeonRooms[r].NumOfAdjacentRooms,test, r);
+		//UE_LOG(LogTemp, Warning, TEXT("room %d has %d adjacent rooms this is itteration %d the current itteration is %d "),DungeonRooms[r].RoomID, DungeonRooms[r].NumOfAdjacentRooms,test, r);
 		test++;
 		if(DungeonRooms[r].NumOfAdjacentRooms <= 2)
 		{
@@ -832,11 +840,36 @@ void ADungeonGenerator::PickStartAndEndRooms()
 
 void ADungeonGenerator::StartPathFinding()
 {
+	PathAtEndPoint = false;
+	int CurrentRoomID = StartRoomID;
+	PathStack.Push(StartRoomID);
+	while (!PathAtEndPoint)
+	{
+		int NextRoomID = NextRoomInPath(CurrentRoomID);
+		if(NextRoomID == -1)
+		{
+			//go back my guy
+			PathStack.Pop();
+			RoomsToIgnore.Add(CurrentRoomID);
+			CurrentRoomID = PathStack.Top();
+		}
+		else
+		{
+			CurrentRoomID = NextRoomID;
+			PathStack.Push(CurrentRoomID);
+			if(NextRoomID == EndRoomID)
+			{
+				PathAtEndPoint = true;
+			}
+		}
+		
+	}
 	
 }
 
 int ADungeonGenerator::NextRoomInPath(int CurrentRoomID)
 {
+	bool NextRoomAllowed = false;
 	int CurrentRoomIndex;
 	for(int i = 0; i < DungeonRooms.Num();i++)
 	{
@@ -851,9 +884,56 @@ int ADungeonGenerator::NextRoomInPath(int CurrentRoomID)
 		return -1;
 	}
 
-	int NextRoom = GetRandomIntInRange(1, DungeonRooms[CurrentRoomIndex].AdjRoomIDs.Num()) - 1;
+	TArray<int> AllowedRooms;
 
-	return NextRoom;
+	for(int i = 0; i < DungeonRooms[CurrentRoomIndex].AdjRoomIDs.Num(); i++)
+	{
+		int RoomIDIndex;
+		for(int x = 0; x <DungeonRooms.Num();x++)
+		{
+			if(DungeonRooms[x].RoomID == DungeonRooms[CurrentRoomIndex].AdjRoomIDs[i])
+			{
+				RoomIDIndex = x;
+			}
+		}
+		if(IsNextRoomAllowed(RoomIDIndex))
+		{
+			AllowedRooms.Add(DungeonRooms[CurrentRoomIndex].AdjRoomIDs[i]);
+		}
+	}
+	if(AllowedRooms.Num() > 0)
+	{
+		int NextRoom = GetRandomIntInRange(1, AllowedRooms.Num()) - 1;
+		
+		return AllowedRooms[NextRoom];
+	}
+	//int NextRoom = GetRandomIntInRange(1, AllowedRooms.Num()) - 1;
+	RoomsToIgnore.Add(CurrentRoomID);
+	return -1;
+}
+
+bool ADungeonGenerator::IsNextRoomAllowed(int NextRoomIndex)
+{
+	if(DungeonRooms[NextRoomIndex].RoomID == EndRoomID)
+	{
+		if(NumOfRoomsInCurrentPath >= MinNumberOfRoomsAllowedInPath)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	for(int i = 0; i < RoomsToIgnore.Num();i++)
+	{
+		if(DungeonRooms[NextRoomIndex].RoomID == RoomsToIgnore[i])
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 bool ADungeonGenerator::StrCheck(int x, int y, int Nx, int Ny)
@@ -881,33 +961,46 @@ void ADungeonGenerator::SpawnCubes()
 
 		for(int i = 0; i < DungeonRooms.Num();i++)
 		{
-			for(int o = 0; o < DungeonRooms[i].Room.Num();o++)
+			bool CanBuildRoom = false;
+			/*
+			for(int t = 0; t < PathStack.Num(); t++)
 			{
+				if(DungeonRooms[i].RoomID == PathStack[t])
+				{
+					CanBuildRoom = true;
+					break;
+				}
+			}*/
+			if(CanBuildRoom)
+			{
+				for(int o = 0; o < DungeonRooms[i].Room.Num();o++)
+				{
 				
-				int x = DungeonRooms[i].Room[o].CellPos.X;
-				int y = DungeonRooms[i].Room[o].CellPos.Y;
-				FVector SpawnLocation = FVector(x*100,y*100 ,0);
-				FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
+					int x = DungeonRooms[i].Room[o].CellPos.X;
+					int y = DungeonRooms[i].Room[o].CellPos.Y;
+					FVector SpawnLocation = FVector(x*100,y*100 ,0);
+					FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
 				
-				if(DungeonRooms[i].Room[o].IsWall)
-				{
-					World->SpawnActor<AActor>(WallList[0], SpawnLocation, SpawnRotation, SpawnParams);
+					if(DungeonRooms[i].Room[o].IsWall)
+					{
+						World->SpawnActor<AActor>(WallList[0], SpawnLocation, SpawnRotation, SpawnParams);
+					}
+					else
+					{
+						World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
+					}
+					//World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
+					/*
+					if(DungeonRooms[i].RoomType == 10)
+					{
+						//UE_LOG(LogTemp, Warning, TEXT("the number of rooms allowed to be the end point are : %d"),RoomsAllowed.Num());
+					}
+					else
+					{
+						World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
+					}*/
+					//World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
 				}
-				else
-				{
-					World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
-				}
-				//World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
-				/*
-				if(DungeonRooms[i].RoomType == 10)
-				{
-					//UE_LOG(LogTemp, Warning, TEXT("the number of rooms allowed to be the end point are : %d"),RoomsAllowed.Num());
-				}
-				else
-				{
-					World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
-				}*/
-				//World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
 			}
 		}
 		
