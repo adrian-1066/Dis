@@ -40,6 +40,7 @@ void ADungeonGenerator::BeginPlay()
 	RoomNeighbourUpdate();
 
 	RoomWallSet();
+	AddRoomsToIgnoreList();
 	SetRoomPos();
 	//UE_LOG(LogTemp, Warning, TEXT("There are : %d"),RoomsInGrid);
 	//UE_LOG(LogTemp, Warning, TEXT("There are this many rooms : %d"),DungeonRooms.Num());
@@ -100,7 +101,10 @@ void ADungeonGenerator::BeginPlay()
 			}
 		}
 	}*/
+	CleanWAllsBetweenRooms();
 	SpawnCubes();
+	SpawnWalls();
+	UE_LOG(LogTemp, Warning, TEXT("the test number is saying that there should be %d number of rooms in the stack, there are %d in the stack"), TestNumber, PathStack.Num());
 	
 }
 
@@ -731,20 +735,86 @@ void ADungeonGenerator::RoomWallSet()
 				{
 					DungeonRooms[i].Room[p].IsWall = true;
 					TheGrid[DungeonRooms[i].Room[p].CellPos.X][DungeonRooms[i].Room[p].CellPos.Y].IsWall = true;
+					float TempX = (DungeonRooms[i].Room[p].CellPos.X + DungeonRooms[i].Room[p].Neighbours[n].CellPos.X)/2.0f;
+					float TempY = (DungeonRooms[i].Room[p].CellPos.Y + DungeonRooms[i].Room[p].Neighbours[n].CellPos.Y)/2.0f;
+					float Rot;
+					if(DungeonRooms[i].Room[p].CellPos.X == DungeonRooms[i].Room[p].Neighbours[n].CellPos.X)
+					{
+						Rot = 90;
+						UE_LOG(LogTemp,Warning,TEXT("Bro get rotated"));
+					}
+					else
+					{
+						Rot = 0;
+						UE_LOG(LogTemp,Warning,TEXT("NO ROTATION"));
+					}
+					DungeonRooms[i].WallLocAndRot.Add(FVector(TempX,TempY, Rot));
 				}
 				
 			}
+
 			if(DungeonRooms[i].Room[p].IsWall)
 			{
 				DungeonRooms[i].NumOfWallCells++;
+				//p = 0;
 			}
 			else
 			{
 				DungeonRooms[i].NumOfUsableCells++;
 			}
+			
+			
 		}
 	}
+
+	/*for(int i = 0; i < DungeonRooms.Num();i++)
+	{
+		for(int p = 0; p < DungeonRooms[i].Room.Num(); p++)
+		{
+			if(DungeonRooms[i].Room[p].IsWall)
+			{
+				continue;
+			}
+			int NeighboursThatAreWalls = 0;
+			for(int n = 0; n < DungeonRooms[i].Room[p].Neighbours.Num(); n++)
+			{
+				if(TheGrid[DungeonRooms[i].Room[p].Neighbours[n].CellPos.X][DungeonRooms[i].Room[p].Neighbours[n].CellPos.Y].IsWall)
+				{
+					NeighboursThatAreWalls++;
+				}
+			}
+
+			if(NeighboursThatAreWalls >= 2)
+			{
+				DungeonRooms[i].Room[p].IsWall = true;
+				TheGrid[DungeonRooms[i].Room[p].CellPos.X][DungeonRooms[i].Room[p].CellPos.Y].IsWall = true;
+			}
+
+
+			if(DungeonRooms[i].Room[p].IsWall)
+			{
+				DungeonRooms[i].NumOfWallCells++;
+				//p = 0;
+			}
+			else
+			{
+				DungeonRooms[i].NumOfUsableCells++;
+			}
+			//p = 0;
+		}
+	}*/
 	
+}
+
+void ADungeonGenerator::AddRoomsToIgnoreList()
+{
+	for(int i = 0; i < DungeonRooms.Num(); i++)
+	{
+		if( DungeonRooms[i].Room.Num() - DungeonRooms[i].NumOfWallCells < MinRoomSizeByCell )
+		{
+			RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
+		}
+	}
 }
 
 void ADungeonGenerator::SetRoomPos()
@@ -806,17 +876,9 @@ void ADungeonGenerator::RoomMerge(int MainRoomIndex, int SmallRoomIndex)
 
 void ADungeonGenerator::PickStartAndEndRooms()
 {
-	StartRoomID = GetRandomIntInRange(0,DungeonRooms.Num()-1);
-	int StartRoomIndex = 0;
-	for(int i = 0; i < DungeonRooms.Num(); i++)
-	{
-		if(DungeonRooms[i].RoomID == StartRoomID)
-		{
-			StartRoomIndex = i;
-			//FDungeonRoom &StartRoom = DungeonRooms[i];
-			break;
-		}
-	}
+	TestNumber = 0;
+	int StartRoomIndex = GetRandomIntInRange(0,DungeonRooms.Num()-1);
+	StartRoomID = DungeonRooms[StartRoomIndex].RoomID;
 	FDungeonRoom &StartRoom = DungeonRooms[StartRoomIndex];
 	FVector2D StartPos = StartRoom.AverageRoomPos;
 	//FDungeonRoom &StartRoom = DungeonRooms[]
@@ -832,7 +894,7 @@ void ADungeonGenerator::PickStartAndEndRooms()
 	}
 	//UE_LOG(LogTemp, Warning, TEXT("the number of rooms allowed to be the end point are : %d"),RoomsAllowed.Num());
 
-	EndRoomID = RoomsAllowed[GetRandomIntInRange(0, RoomsAllowed.Num()-1)];
+	EndRoomID = DungeonRooms[RoomsAllowed[GetRandomIntInRange(0, RoomsAllowed.Num()-1)]].RoomID;
 	
 
 	
@@ -843,6 +905,7 @@ void ADungeonGenerator::StartPathFinding()
 	PathAtEndPoint = false;
 	int CurrentRoomID = StartRoomID;
 	PathStack.Push(StartRoomID);
+	TestNumber++;
 	while (!PathAtEndPoint)
 	{
 		int NextRoomID = NextRoomInPath(CurrentRoomID);
@@ -850,6 +913,7 @@ void ADungeonGenerator::StartPathFinding()
 		{
 			//go back my guy
 			PathStack.Pop();
+			TestNumber--;
 			RoomsToIgnore.Add(CurrentRoomID);
 			CurrentRoomID = PathStack.Top();
 		}
@@ -857,6 +921,7 @@ void ADungeonGenerator::StartPathFinding()
 		{
 			CurrentRoomID = NextRoomID;
 			PathStack.Push(CurrentRoomID);
+			TestNumber++;
 			if(NextRoomID == EndRoomID)
 			{
 				PathAtEndPoint = true;
@@ -870,7 +935,7 @@ void ADungeonGenerator::StartPathFinding()
 int ADungeonGenerator::NextRoomInPath(int CurrentRoomID)
 {
 	bool NextRoomAllowed = false;
-	int CurrentRoomIndex;
+	int CurrentRoomIndex = -1;
 	for(int i = 0; i < DungeonRooms.Num();i++)
 	{
 		if(DungeonRooms[i].RoomID == CurrentRoomID)
@@ -878,6 +943,8 @@ int ADungeonGenerator::NextRoomInPath(int CurrentRoomID)
 			CurrentRoomIndex = i;
 		}
 	}
+
+	UE_LOG(LogTemp,Warning,TEXT("current room index is %d for room ID %d"), CurrentRoomIndex, CurrentRoomID);
 
 	if(DungeonRooms[CurrentRoomIndex].AdjRoomIDs.Num() <= 0)
 	{
@@ -893,12 +960,16 @@ int ADungeonGenerator::NextRoomInPath(int CurrentRoomID)
 		{
 			if(DungeonRooms[x].RoomID == DungeonRooms[CurrentRoomIndex].AdjRoomIDs[i])
 			{
+				
 				RoomIDIndex = x;
 			}
 		}
 		if(IsNextRoomAllowed(RoomIDIndex))
 		{
-			AllowedRooms.Add(DungeonRooms[CurrentRoomIndex].AdjRoomIDs[i]);
+			if(DungeonRooms[RoomIDIndex].RoomID != CurrentRoomID)
+			{
+				AllowedRooms.Add(DungeonRooms[CurrentRoomIndex].AdjRoomIDs[i]);
+			}
 		}
 	}
 	if(AllowedRooms.Num() > 0)
@@ -926,6 +997,8 @@ bool ADungeonGenerator::IsNextRoomAllowed(int NextRoomIndex)
 		}
 	}
 
+	
+
 	for(int i = 0; i < RoomsToIgnore.Num();i++)
 	{
 		if(DungeonRooms[NextRoomIndex].RoomID == RoomsToIgnore[i])
@@ -933,7 +1006,145 @@ bool ADungeonGenerator::IsNextRoomAllowed(int NextRoomIndex)
 			return false;
 		}
 	}
+
+	for(int i = 0; i < PathStack.Num(); i++)
+	{
+		if(DungeonRooms[NextRoomIndex].RoomID == PathStack[i])
+		{
+			return false;
+		}
+	}
 	return true;
+}
+
+void ADungeonGenerator::CleanWAllsBetweenRooms()
+{
+	for(int i = 0; i < PathStack.Num()-1;i++)
+	{
+		int CurrentRoomIndex;
+		//int CurrentRoomID;
+		int NextRoomIndex;
+		for(int x = 0; x < DungeonRooms.Num(); x++)
+		{
+			if(DungeonRooms[x].RoomID == PathStack[i])
+			{
+				CurrentRoomIndex = x;
+			}
+
+			if(DungeonRooms[x].RoomID == PathStack[i+1])
+			{
+				NextRoomIndex = x;
+			}
+		}
+		for(int x = 0; x < DungeonRooms[NextRoomIndex].Room.Num(); x++)
+		{
+			for(int z = 0; z < DungeonRooms[NextRoomIndex].Room[x].Neighbours.Num(); z++)
+			{
+				if(TheGrid[DungeonRooms[NextRoomIndex].Room[x].Neighbours[z].CellPos.X][DungeonRooms[NextRoomIndex].Room[x].Neighbours[z].CellPos.Y].RoomID == PathStack[i])
+				{
+					FVector temp;
+					float TempX = (DungeonRooms[NextRoomIndex].Room[x].CellPos.X + DungeonRooms[NextRoomIndex].Room[x].Neighbours[z].CellPos.X)/2.0f;
+					float TempY = (DungeonRooms[NextRoomIndex].Room[x].CellPos.Y + DungeonRooms[NextRoomIndex].Room[x].Neighbours[z].CellPos.Y)/2.0f;
+					float TempRot;
+					if(DungeonRooms[NextRoomIndex].Room[x].CellPos.X == DungeonRooms[NextRoomIndex].Room[x].Neighbours[z].CellPos.X )
+					{
+						TempRot = 90;
+					}
+					else
+					{
+						TempRot = 0;
+					}
+
+					temp = FVector(TempX,TempY,TempRot);
+
+					for(int k = 0; k < DungeonRooms[NextRoomIndex].WallLocAndRot.Num(); k++)
+					{
+						if(DungeonRooms[NextRoomIndex].WallLocAndRot[k] == temp)
+						{
+							DungeonRooms[NextRoomIndex].WallLocAndRot.RemoveAt(k);
+							
+							break;
+						}
+					}
+					//DungeonRooms[NextRoomIndex].Room[x].IsWall = false;
+					//TheGrid[DungeonRooms[NextRoomIndex].Room[x].Neighbours[z].CellPos.X][DungeonRooms[NextRoomIndex].Room[x].Neighbours[z].CellPos.Y].IsWall = false;
+				}
+			}
+		}
+		bool ClearRoom = false;
+		for(int f = 0; f < RoomsToIgnoreForObj.Num();f++)
+		{
+			if(DungeonRooms[CurrentRoomIndex].RoomID == RoomsToIgnoreForObj[f])
+			{
+				ClearRoom = true;
+				break;
+			}
+		}
+
+		for(int x = 0; x < DungeonRooms[CurrentRoomIndex].Room.Num(); x++)
+		{
+			if(ClearRoom)
+			{
+				DungeonRooms[CurrentRoomIndex].WallLocAndRot.Empty();
+				//DungeonRooms[CurrentRoomIndex].Room[x].IsWall = false;
+				//TheGrid[DungeonRooms[CurrentRoomIndex].Room[x].CellPos.X][DungeonRooms[CurrentRoomIndex].Room[x].CellPos.Y].IsWall = false;
+				continue;
+			}
+			int NCellsThatAreNotWalls = 0;
+			int NCellsThatAreWalls = 0;
+			for(int z = 0; z < DungeonRooms[CurrentRoomIndex].Room[x].Neighbours.Num(); z++)
+			{
+				if(TheGrid[DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.X][DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.Y].RoomID == PathStack[i] && !DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].IsWall)//!DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].IsWall && 
+				{
+					NCellsThatAreNotWalls++;
+				}
+				else if(TheGrid[DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.X][DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.Y].RoomID == PathStack[i] && DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].IsWall)
+				{
+					NCellsThatAreWalls++;
+				}
+				if(TheGrid[DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.X][DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.Y].RoomID == PathStack[i+1])
+				{
+					FVector temp;
+					float TempX = (DungeonRooms[CurrentRoomIndex].Room[x].CellPos.X + DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.X)/2.0f;
+					float TempY = (DungeonRooms[CurrentRoomIndex].Room[x].CellPos.Y + DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.Y)/2.0f;
+					float TempRot;
+					if(DungeonRooms[CurrentRoomIndex].Room[x].CellPos.X ==DungeonRooms[CurrentRoomIndex].Room[x].Neighbours[z].CellPos.X )
+					{
+						TempRot = 90;
+					}
+					else
+					{
+						TempRot = 0;
+					}
+
+					temp = FVector(TempX,TempY,TempRot);
+
+					for(int k = 0; k < DungeonRooms[CurrentRoomIndex].WallLocAndRot.Num(); k++)
+					{
+						if(DungeonRooms[CurrentRoomIndex].WallLocAndRot[k] == temp)
+						{
+							DungeonRooms[CurrentRoomIndex].WallLocAndRot.RemoveAt(k);
+							break;
+						}
+					}
+					//DungeonRooms[CurrentRoomIndex].Room[x].IsWall = false;
+					//TheGrid[DungeonRooms[CurrentRoomIndex].Room[x].CellPos.X][DungeonRooms[CurrentRoomIndex].Room[x].CellPos.Y].IsWall = false;
+				}
+				
+			}
+			/*if(NCellsThatAreNotWalls == 1 && NCellsThatAreWalls >= 0)// && DungeonRooms[CurrentRoomIndex].Room[x].IsWall)
+			{
+				DungeonRooms[CurrentRoomIndex].Room[x].IsWall = false;
+				TheGrid[DungeonRooms[CurrentRoomIndex].Room[x].CellPos.X][DungeonRooms[CurrentRoomIndex].Room[x].CellPos.Y].IsWall = false;
+				DungeonRooms[CurrentRoomIndex].NumOfWallCells--;
+				//i = 0;
+				//break;
+				//x = 0;
+			}*/
+		}
+
+		
+	}
 }
 
 bool ADungeonGenerator::StrCheck(int x, int y, int Nx, int Ny)
@@ -951,10 +1162,11 @@ bool ADungeonGenerator::StrCheck(int x, int y, int Nx, int Ny)
 
 void ADungeonGenerator::SpawnCubes()
 {
+	
 	UWorld* const World = GetWorld();
 	if(World)
 	{
-		
+		int CurrentRoomInPath = 0;
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = GetInstigator();
@@ -962,15 +1174,17 @@ void ADungeonGenerator::SpawnCubes()
 		for(int i = 0; i < DungeonRooms.Num();i++)
 		{
 			bool CanBuildRoom = false;
-			/*
+			
 			for(int t = 0; t < PathStack.Num(); t++)
 			{
 				if(DungeonRooms[i].RoomID == PathStack[t])
 				{
 					CanBuildRoom = true;
+					CurrentRoomInPath = t;
+					UE_LOG(LogTemp, Warning, TEXT("building room %d in path"), t);
 					break;
 				}
-			}*/
+			}
 			if(CanBuildRoom)
 			{
 				for(int o = 0; o < DungeonRooms[i].Room.Num();o++)
@@ -978,9 +1192,18 @@ void ADungeonGenerator::SpawnCubes()
 				
 					int x = DungeonRooms[i].Room[o].CellPos.X;
 					int y = DungeonRooms[i].Room[o].CellPos.Y;
-					FVector SpawnLocation = FVector(x*100,y*100 ,0);
+					float tempZ = 0;
+					if(CurrentRoomInPath == 0)
+					{
+						tempZ = 100;
+						UE_LOG(LogTemp, Warning, TEXT("building room zero"));
+					}
+					FVector SpawnLocation = FVector(x*100,y*100 ,0*CurrentRoomInPath);
+					
 					FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
-				
+
+					World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
+				/*
 					if(DungeonRooms[i].Room[o].IsWall)
 					{
 						World->SpawnActor<AActor>(WallList[0], SpawnLocation, SpawnRotation, SpawnParams);
@@ -988,7 +1211,7 @@ void ADungeonGenerator::SpawnCubes()
 					else
 					{
 						World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
-					}
+					}*/
 					//World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
 					/*
 					if(DungeonRooms[i].RoomType == 10)
@@ -1007,6 +1230,41 @@ void ADungeonGenerator::SpawnCubes()
 	}
 }
 
+void ADungeonGenerator::SpawnWalls()
+{
+	UWorld* const World = GetWorld();
+	if(World)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = GetInstigator();
+		for(int i = 0; i < DungeonRooms.Num(); i++)
+		{
+			bool CanBuildRoom = false;
+			
+			for(int t = 0; t < PathStack.Num(); t++)
+			{
+				if(DungeonRooms[i].RoomID == PathStack[t])
+				{
+					CanBuildRoom = true;
+					break;
+				}
+			}
+			if(CanBuildRoom)
+			{
+				for(int k = 0; k < DungeonRooms[i].WallLocAndRot.Num(); k++)
+				{
+					FVector SpawnLocation = FVector(DungeonRooms[i].WallLocAndRot[k].X * 100.0f,DungeonRooms[i].WallLocAndRot[k].Y*100.0f ,0);
+					
+					FRotator SpawnRotation = FRotator(0.0f,DungeonRooms[i].WallLocAndRot[k].Z,0.0f);
+
+					World->SpawnActor<AActor>(WallList[0], SpawnLocation, SpawnRotation, SpawnParams);
+				}
+			}
+		}
+	}
+}
+
 
 void ADungeonGenerator::checkIfThereIsASeed()
 {
@@ -1014,11 +1272,7 @@ void ADungeonGenerator::checkIfThereIsASeed()
 	{
 		GlobalSeed = FMath::RandRange(1000000,9999999);
 	}
-	else
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("yeah we got a seed my boi"));
-		
-	}
+	
 }
 
 float ADungeonGenerator::GetRandomFloat()
@@ -1038,12 +1292,6 @@ int ADungeonGenerator::GetRandomIntInRange(int Min, int Max)
 {
 	float tempRandFloat = GetRandomFloat();
 	int temp = FMath::RoundToInt((tempRandFloat * (Max - Min)) + Min);
-
-	if(temp < Min)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("bruh that number was out of range : %d"), temp);
-		//temp = GetRandomIntInRange(Min, Max);
-	}
 	return temp;
 }
 

@@ -62,6 +62,7 @@ private:
 	void RoomNeighbourUpdate();
 
 	void RoomWallSet();
+	void AddRoomsToIgnoreList();
 	void SetRoomPos();
 	void RoomMerge(int MainRoomIndex, int SmallRoomIndex);
 	
@@ -70,7 +71,9 @@ private:
 	void StartPathFinding();
 	int NextRoomInPath(int CurrentRoomID);
 	bool IsNextRoomAllowed(int CurrentRoomIndex);
+	void CleanWAllsBetweenRooms();
 	void SpawnCubes();
+	void SpawnWalls();
 
 
 	bool StrCheck(int x, int y, int Nx, int Ny);
@@ -81,6 +84,7 @@ private:
 	TArray<FDungeonRoom> DungeonRooms;
 	TArray<int> PathStack;
 	TArray<int> RoomsToIgnore;
+	TArray<int> RoomsToIgnoreForObj;
 	bool PathAtEndPoint;
 	int RoomsInGrid;
 	int RoomsMerged;
@@ -88,6 +92,8 @@ private:
 	int EndRoomID;
 	int NumOfRoomsInCurrentPath;
 	int MinNumberOfRoomsAllowedInPath;
+
+	int TestNumber;
 	
 
 };
