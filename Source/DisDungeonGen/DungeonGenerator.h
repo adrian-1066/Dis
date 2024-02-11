@@ -72,6 +72,7 @@ private:
 	int NextRoomInPath(int CurrentRoomID);
 	bool IsNextRoomAllowed(int CurrentRoomIndex);
 	void CleanWAllsBetweenRooms();
+	void SetRoomTypes();
 	void SpawnCubes();
 	void SpawnWalls();
 

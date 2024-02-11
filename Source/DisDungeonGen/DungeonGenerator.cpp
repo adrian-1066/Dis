@@ -813,6 +813,22 @@ void ADungeonGenerator::AddRoomsToIgnoreList()
 		if( DungeonRooms[i].Room.Num() - DungeonRooms[i].NumOfWallCells < MinRoomSizeByCell )
 		{
 			RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
+			continue;
+		}
+
+		for(int p = 0; p < DungeonRooms[i].Room.Num(); p++)
+		{
+			if(DungeonRooms[i].Room[p].CellPos.X == 0 || DungeonRooms[i].Room[p].CellPos.X == GridSize-1)
+			{
+				RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
+				break;
+			}
+
+			if(DungeonRooms[i].Room[p].CellPos.Y == 0 || DungeonRooms[i].Room[p].CellPos.Y == GridSize-1)
+			{
+				RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
+				break;
+			}
 		}
 	}
 }
@@ -1145,6 +1161,12 @@ void ADungeonGenerator::CleanWAllsBetweenRooms()
 
 		
 	}
+}
+
+void ADungeonGenerator::SetRoomTypes()
+{
+
+	
 }
 
 bool ADungeonGenerator::StrCheck(int x, int y, int Nx, int Ny)
