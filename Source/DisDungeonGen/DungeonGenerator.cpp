@@ -20,6 +20,13 @@ void ADungeonGenerator::BeginPlay()
 {
 	RoomsInGrid = 0;
 	RoomsMerged = 0;
+	BasePuzzleChance = 30.0f;
+	BaseTreasureChance = 15.0f;
+	BaseFightChance = 55.0f;
+
+	CurrentPuzzleChance = BasePuzzleChance;
+	CurrentTreasureChance = BaseTreasureChance;
+	CurrentFightChance = BaseFightChance;
 	Super::BeginPlay();
 	SetGridUp();
 	SetCellStrAndType();
@@ -102,6 +109,7 @@ void ADungeonGenerator::BeginPlay()
 		}
 	}*/
 	CleanWAllsBetweenRooms();
+	SetRoomTypes();
 	SpawnCubes();
 	SpawnWalls();
 	UE_LOG(LogTemp, Warning, TEXT("the test number is saying that there should be %d number of rooms in the stack, there are %d in the stack"), TestNumber, PathStack.Num());
@@ -810,7 +818,7 @@ void ADungeonGenerator::AddRoomsToIgnoreList()
 {
 	for(int i = 0; i < DungeonRooms.Num(); i++)
 	{
-		if( DungeonRooms[i].Room.Num() - DungeonRooms[i].NumOfWallCells < MinRoomSizeByCell )
+		if( DungeonRooms[i].Room.Num() - DungeonRooms[i].NumOfWallCells < MinRoomSizeWithWall )
 		{
 			RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
 			continue;
@@ -820,13 +828,15 @@ void ADungeonGenerator::AddRoomsToIgnoreList()
 		{
 			if(DungeonRooms[i].Room[p].CellPos.X == 0 || DungeonRooms[i].Room[p].CellPos.X == GridSize-1)
 			{
-				RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
+				//RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
+				RoomsToIgnore.Add(DungeonRooms[i].RoomID);
 				break;
 			}
 
 			if(DungeonRooms[i].Room[p].CellPos.Y == 0 || DungeonRooms[i].Room[p].CellPos.Y == GridSize-1)
 			{
-				RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
+				//RoomsToIgnoreForObj.Add(DungeonRooms[i].RoomID);
+				RoomsToIgnore.Add(DungeonRooms[i].RoomID);
 				break;
 			}
 		}
@@ -1165,6 +1175,68 @@ void ADungeonGenerator::CleanWAllsBetweenRooms()
 
 void ADungeonGenerator::SetRoomTypes()
 {
+	for(int i = 0; i < DungeonRooms.Num(); i++)
+	{
+		if(DungeonRooms[i].RoomID == PathStack[0])
+		{
+			DungeonRooms[i].RoomType = 0;
+		}
+		else if(DungeonRooms[i].RoomID == PathStack[PathStack.Num()-1])
+		{
+			DungeonRooms[i].RoomType = 4;
+		}
+		else if(DungeonRooms[i].RoomID == PathStack[PathStack.Num()-2])
+		{
+			DungeonRooms[i].RoomType = 3;
+		}
+	}
+
+	for(int i = 1; i < PathStack.Num()-2;i++)
+	{
+		int RoomIndex;
+		for(int p = 0; p < DungeonRooms.Num();p++)
+		{
+			if(DungeonRooms[p].RoomID == PathStack[i])
+			{
+				RoomIndex = p;
+				break;
+			}
+		}
+		if(DungeonRooms[RoomIndex].WallLocAndRot.Num() == 0)
+		{
+			DungeonRooms[RoomIndex].RoomType = 5;
+			continue;
+		}
+
+		float RandomRoomChance = GetRandomIntInRange(0,100);
+		if(RandomRoomChance < CurrentFightChance)
+		{
+			//set it to fight
+			ResetRoomChance();
+			CurrentFightChance -= 10.0f;
+			CurrentPuzzleChance += 5.0f;
+			CurrentTreasureChance += 5.0f;
+			DungeonRooms[RoomIndex].RoomType = 1;
+		}
+		else if(RandomRoomChance < CurrentFightChance + CurrentPuzzleChance && RandomRoomChance >= CurrentFightChance)
+		{
+			//set it to puzzle chance
+			ResetRoomChance();
+			CurrentFightChance += 5.0f;
+			CurrentPuzzleChance -= 10.0f;
+			CurrentTreasureChance += 5.0f;
+			DungeonRooms[RoomIndex].RoomType = 2;
+		}
+		else if(RandomRoomChance < 100 && RandomRoomChance >= 100 - CurrentTreasureChance)
+		{
+			//set it to treasure
+			ResetRoomChance();
+			CurrentFightChance += 5.0f;
+			CurrentPuzzleChance += 5.0f;
+			CurrentTreasureChance -= 10.0f;
+			DungeonRooms[RoomIndex].RoomType = 3;
+		}
+	}
 
 	
 }
@@ -1224,7 +1296,7 @@ void ADungeonGenerator::SpawnCubes()
 					
 					FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
 
-					World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
+					World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType], SpawnLocation, SpawnRotation, SpawnParams);
 				/*
 					if(DungeonRooms[i].Room[o].IsWall)
 					{
@@ -1315,5 +1387,12 @@ int ADungeonGenerator::GetRandomIntInRange(int Min, int Max)
 	float tempRandFloat = GetRandomFloat();
 	int temp = FMath::RoundToInt((tempRandFloat * (Max - Min)) + Min);
 	return temp;
+}
+
+void ADungeonGenerator::ResetRoomChance()
+{
+	CurrentPuzzleChance = BasePuzzleChance;
+	CurrentTreasureChance = BaseTreasureChance;
+	CurrentFightChance = BaseFightChance;
 }
 

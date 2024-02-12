@@ -23,6 +23,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	int MinRoomSizeByCell;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
+	int MinRoomSizeWithWall;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	int MaxRoomSizeByCell;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	TArray<TSubclassOf<AActor>> CubeList;
@@ -81,6 +83,7 @@ private:
 	void checkIfThereIsASeed();
 	float GetRandomFloat();
 	int GetRandomIntInRange(int Min, int Max);
+	void ResetRoomChance();
 
 	TArray<FDungeonRoom> DungeonRooms;
 	TArray<int> PathStack;
@@ -95,6 +98,14 @@ private:
 	int MinNumberOfRoomsAllowedInPath;
 
 	int TestNumber;
+
+	float CurrentPuzzleChance;
+	float CurrentTreasureChance;
+	float CurrentFightChance;
+
+	float BasePuzzleChance;
+	float BaseTreasureChance;
+	float BaseFightChance;
 	
 
 };

@@ -46,4 +46,5 @@ struct FDungeonRoom
  FVector2D AverageRoomPos;
  TArray<FVector> WallLocAndRot;
  
+ 
 };
