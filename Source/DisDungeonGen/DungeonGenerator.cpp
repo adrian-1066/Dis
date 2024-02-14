@@ -1348,7 +1348,7 @@ void ADungeonGenerator::SpawnWalls()
 			{
 				for(int k = 0; k < DungeonRooms[i].WallLocAndRot.Num(); k++)
 				{
-					FVector SpawnLocation = FVector(DungeonRooms[i].WallLocAndRot[k].X * 100.0f,DungeonRooms[i].WallLocAndRot[k].Y*100.0f ,0);
+					FVector SpawnLocation = FVector(DungeonRooms[i].WallLocAndRot[k].X * 100.0f,DungeonRooms[i].WallLocAndRot[k].Y*100.0f ,50.0f);
 					
 					FRotator SpawnRotation = FRotator(0.0f,DungeonRooms[i].WallLocAndRot[k].Z,0.0f);
 
