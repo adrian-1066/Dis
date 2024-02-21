@@ -27,93 +27,62 @@ void ADungeonGenerator::BeginPlay()
 	CurrentPuzzleChance = BasePuzzleChance;
 	CurrentTreasureChance = BaseTreasureChance;
 	CurrentFightChance = BaseFightChance;
+	NumOfCellsInDungeon = 0;
+	NumOfFightRooms=0;
+	NumOfTreasureRooms=0;
+	NumOfPuzzleRooms=0;
+	NumOfDeadRooms=0;
 	Super::BeginPlay();
 	SetGridUp();
 	SetCellStrAndType();
 	SetCellhood();
 	InitialStrCheck();
 	SecondStrCheck();
-	//InitialStrCheck();
 	CreateRooms();
 	RoomCleanUp();
 	SmallRoomCleanUp();
-	//RoomCleanUp();
 	RoomAdjacentCheck();
 	RoomNeighbourUpdate();
 	MinRoomAdjacentCleanUp();
 	RoomNeighbourUpdate();
 	RoomAdjacentCheck();
-	//ReveseMinRoomCleanUp();
 	RoomNeighbourUpdate();
-
 	RoomWallSet();
 	AddRoomsToIgnoreList();
 	SetRoomPos();
 	//UE_LOG(LogTemp, Warning, TEXT("There are : %d"),RoomsInGrid);
-	//UE_LOG(LogTemp, Warning, TEXT("There are this many rooms : %d"),DungeonRooms.Num());
-	//UE_LOG(LogTemp, Warning, TEXT("these many rooms have merged : %d"),RoomsMerged);
 	PickStartAndEndRooms();
 	StartPathFinding();
-	for(int i  = 0; i < DungeonRooms.Num();i++)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Room at index %d has this many adj rooms %d"),i, DungeonRooms[i].AdjRoomIDs.Num());
-	}
-	
-	/*
-	for(int i = 0; i < DungeonRooms.Num(); i++)
-	{
-		RoomMergedAdjChec(i);
-		UE_LOG(LogTemp, Warning, TEXT("Room: %d has: %d adjacent rooms"),i, DungeonRooms[i].NumOfAdjacentRooms);
-		
-	}*/
-	//RoomNeighbourUpdate();
-/*
-	for(int x = 0; x < TheGrid.Num(); x++)
-	{
-		for (int y = 0; y < TheGrid.Num(); y++)
-		{
-			for(int i = 0; i < TheGrid[x][y].Neighbours.Num(); i++)
-			{
-				if(TheGrid[x][y].Neighbours[i].RoomID != TheGrid[TheGrid[x][y].Neighbours[i].CellPos.X][TheGrid[x][y].Neighbours[i].CellPos.Y].RoomID)
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Cell %d %d Has the roomID of %d its listed Neighbour %d has the RoomID %d while the Grid version has the ID of %d "),x,y,TheGrid[x][y].RoomID,i,TheGrid[x][y].Neighbours[i].RoomID, TheGrid[TheGrid[x][y].Neighbours[i].CellPos.X][TheGrid[x][y].Neighbours[i].CellPos.Y].RoomID);
-				}
-			}
-			
-		}
-	}*/
-/*
-	for(int i = 0; i < DungeonRooms.Num(); i++)
-	{
-		for(int q = 0; q < DungeonRooms[i].Room.Num();q++)
-		{
-			if(TheGrid[DungeonRooms[i].Room[q].CellPos.X][DungeonRooms[i].Room[q].CellPos.Y].RoomID != DungeonRooms[i].RoomID)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("cell %d %d does have the same room Id as room %d"),DungeonRooms[i].Room[q].CellPos.X,DungeonRooms[i].Room[q].CellPos.Y,i); 
-			}
-		}
-	}*/
-	/*
-	for(int i = 0; i < DungeonRooms.Num(); i++)
-	{
-		for(int p  = 0; p < DungeonRooms[i].Room.Num(); p++)
-		{
-			if(DungeonRooms[i].Room[p].IsWall)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("room %d Cell %d is a wall"),i, p); 
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("room %d Cell %d is NOT wall"),i, p); 
-			}
-		}
-	}*/
 	CleanWAllsBetweenRooms();
 	SetRoomTypes();
 	SpawnCubes();
 	SpawnWalls();
-	UE_LOG(LogTemp, Warning, TEXT("the test number is saying that there should be %d number of rooms in the stack, there are %d in the stack"), TestNumber, PathStack.Num());
-	
+	//UE_LOG(LogTemp, Warning, TEXT("the test number is saying that there should be %d number of rooms in the stack, there are %d in the stack"), TestNumber, PathStack.Num());
+	UE_LOG(LogTemp, Warning, TEXT("the num of cells in the dungeon is: %d"), NumOfCellsInDungeon);
+	UE_LOG(LogTemp, Warning, TEXT("the number of rooms in the path is: %d"), PathStack.Num());
+	UE_LOG(LogTemp, Warning, TEXT("the number of fight rooms is %d the number of puzzle rooms is %d the number of treasure rooms is %d the number of dead rooms is %d"),NumOfFightRooms,NumOfPuzzleRooms,NumOfTreasureRooms,NumOfDeadRooms);
+	UE_LOG(LogTemp, Warning, TEXT("the order of the room types in the path is:"));
+	TArray<int> RoomOrder;
+	FString RoomOrderContent;
+	for(int i = 0; i < PathStack.Num(); i++)
+	{
+		int RoomType;
+		for(int x = 0; x < DungeonRooms.Num(); x++)
+		{
+			if(DungeonRooms[x].RoomID == PathStack[i])
+			{
+				RoomType = DungeonRooms[x].RoomType;
+				RoomOrder.Add(RoomType);
+				break;
+			}
+		}
+		//UE_LOG(LogTemp, Warning, TEXT("room %d is of room type %d"), i, RoomType);
+	}
+	for(int Element : RoomOrder)
+	{
+		RoomOrderContent += FString::Printf(TEXT("%d,"), Element);
+	}
+	UE_LOG(LogTemp, Warning, TEXT("room order is %s"), *RoomOrderContent);
 }
 
 // Called every frame
@@ -592,7 +561,7 @@ void ADungeonGenerator::MinRoomAdjacentCleanUp()
 				{
 					RoomMerge(OtherRoomIndex, r);
 					//DungeonRooms[r].RoomType = 10;
-					UE_LOG(LogTemp, Warning, TEXT("room %d got set to 10 "),r);
+					//UE_LOG(LogTemp, Warning, TEXT("room %d got set to 10 "),r);
 					r = 0;/*
 					for(int h = 0; h < DungeonRooms.Num(); h++)
 					{
@@ -649,7 +618,7 @@ void ADungeonGenerator::ReveseMinRoomCleanUp()
 				//
 				if(RoomFound)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("room %d got merged into %d "),r, OtherRoomIndex);
+					//UE_LOG(LogTemp, Warning, TEXT("room %d got merged into %d "),r, OtherRoomIndex);
 					RoomMerge(OtherRoomIndex, r);
 					r = 0;
 					for(int h = 0; h < DungeonRooms.Num(); h++)
@@ -749,12 +718,12 @@ void ADungeonGenerator::RoomWallSet()
 					if(DungeonRooms[i].Room[p].CellPos.X == DungeonRooms[i].Room[p].Neighbours[n].CellPos.X)
 					{
 						Rot = 90;
-						UE_LOG(LogTemp,Warning,TEXT("Bro get rotated"));
+						//UE_LOG(LogTemp,Warning,TEXT("Bro get rotated"));
 					}
 					else
 					{
 						Rot = 0;
-						UE_LOG(LogTemp,Warning,TEXT("NO ROTATION"));
+						//UE_LOG(LogTemp,Warning,TEXT("NO ROTATION"));
 					}
 					DungeonRooms[i].WallLocAndRot.Add(FVector(TempX,TempY, Rot));
 				}
@@ -970,7 +939,7 @@ int ADungeonGenerator::NextRoomInPath(int CurrentRoomID)
 		}
 	}
 
-	UE_LOG(LogTemp,Warning,TEXT("current room index is %d for room ID %d"), CurrentRoomIndex, CurrentRoomID);
+	//UE_LOG(LogTemp,Warning,TEXT("current room index is %d for room ID %d"), CurrentRoomIndex, CurrentRoomID);
 
 	if(DungeonRooms[CurrentRoomIndex].AdjRoomIDs.Num() <= 0)
 	{
@@ -1188,6 +1157,7 @@ void ADungeonGenerator::SetRoomTypes()
 		else if(DungeonRooms[i].RoomID == PathStack[PathStack.Num()-2])
 		{
 			DungeonRooms[i].RoomType = 3;
+			NumOfTreasureRooms++;
 		}
 	}
 
@@ -1205,6 +1175,7 @@ void ADungeonGenerator::SetRoomTypes()
 		if(DungeonRooms[RoomIndex].WallLocAndRot.Num() == 0)
 		{
 			DungeonRooms[RoomIndex].RoomType = 5;
+			NumOfDeadRooms++;
 			continue;
 		}
 
@@ -1217,6 +1188,7 @@ void ADungeonGenerator::SetRoomTypes()
 			CurrentPuzzleChance += 5.0f;
 			CurrentTreasureChance += 5.0f;
 			DungeonRooms[RoomIndex].RoomType = 1;
+			NumOfFightRooms++;
 		}
 		else if(RandomRoomChance < CurrentFightChance + CurrentPuzzleChance && RandomRoomChance >= CurrentFightChance)
 		{
@@ -1226,6 +1198,7 @@ void ADungeonGenerator::SetRoomTypes()
 			CurrentPuzzleChance -= 10.0f;
 			CurrentTreasureChance += 5.0f;
 			DungeonRooms[RoomIndex].RoomType = 2;
+			NumOfPuzzleRooms++;
 		}
 		else if(RandomRoomChance < 100 && RandomRoomChance >= 100 - CurrentTreasureChance)
 		{
@@ -1235,6 +1208,7 @@ void ADungeonGenerator::SetRoomTypes()
 			CurrentPuzzleChance += 5.0f;
 			CurrentTreasureChance -= 10.0f;
 			DungeonRooms[RoomIndex].RoomType = 3;
+			NumOfTreasureRooms++;
 		}
 	}
 
@@ -1275,7 +1249,7 @@ void ADungeonGenerator::SpawnCubes()
 				{
 					CanBuildRoom = true;
 					CurrentRoomInPath = t;
-					UE_LOG(LogTemp, Warning, TEXT("building room %d in path"), t);
+					//UE_LOG(LogTemp, Warning, TEXT("building room %d in path"), t);
 					break;
 				}
 			}
@@ -1290,13 +1264,14 @@ void ADungeonGenerator::SpawnCubes()
 					if(CurrentRoomInPath == 0)
 					{
 						tempZ = 100;
-						UE_LOG(LogTemp, Warning, TEXT("building room zero"));
+						//UE_LOG(LogTemp, Warning, TEXT("building room zero"));
 					}
 					FVector SpawnLocation = FVector(x*100,y*100 ,0*CurrentRoomInPath);
 					
 					FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
 
 					World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType], SpawnLocation, SpawnRotation, SpawnParams);
+					NumOfCellsInDungeon++;
 				/*
 					if(DungeonRooms[i].Room[o].IsWall)
 					{

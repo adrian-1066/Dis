@@ -98,6 +98,11 @@ private:
 	int MinNumberOfRoomsAllowedInPath;
 
 	int TestNumber;
+	int NumOfCellsInDungeon;
+	int NumOfFightRooms;
+	int NumOfTreasureRooms;
+	int NumOfPuzzleRooms;
+	int NumOfDeadRooms;
 
 	float CurrentPuzzleChance;
 	float CurrentTreasureChance;
