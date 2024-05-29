@@ -5,6 +5,7 @@
 
 #include <SceneExport.h>
 
+#include "BaseTileGrid.h"
 #include "EngineUtils.h"
 //#include "Math/UnrealMathUtility.h"
 // Sets default values
@@ -32,36 +33,43 @@ void ADungeonGenerator::BeginPlay()
 	NumOfTreasureRooms=0;
 	NumOfPuzzleRooms=0;
 	NumOfDeadRooms=0;
+	CurrentStage = 0;
 	Super::BeginPlay();
 	SetGridUp();
 	SetCellStrAndType();
 	SetCellhood();
-	InitialStrCheck();
-	SecondStrCheck();
-	CreateRooms();
-	RoomCleanUp();
-	SmallRoomCleanUp();
-	RoomAdjacentCheck();
-	RoomNeighbourUpdate();
-	MinRoomAdjacentCleanUp();
-	RoomNeighbourUpdate();
-	RoomAdjacentCheck();
-	RoomNeighbourUpdate();
-	RoomWallSet();
-	AddRoomsToIgnoreList();
-	SetRoomPos();
+	BuildWorld();
+	NextStage();
+	//InitialStrCheck();
+	//SecondStrCheck();
+	//CreateRooms();
+	//RoomCleanUp();
+	//SmallRoomCleanUp();
+	//RoomAdjacentCheck();
+	//RoomNeighbourUpdate();
+	//MinRoomAdjacentCleanUp();
+	//RoomNeighbourUpdate();
+	//RoomAdjacentCheck();
+	//RoomNeighbourUpdate();
+	//RoomWallSet();
+	//AddRoomsToIgnoreList();
+	//SetRoomPos();
 	//UE_LOG(LogTemp, Warning, TEXT("There are : %d"),RoomsInGrid);
-	PickStartAndEndRooms();
-	StartPathFinding();
-	CleanWAllsBetweenRooms();
-	SetRoomTypes();
-	SpawnCubes();
-	SpawnWalls();
+	//PickStartAndEndRooms();
+	//StartPathFinding();
+	//CleanWAllsBetweenRooms();
+	//SetRoomTypes();
+	//SetGridRooms();
+	//BuildWorld();
+	//SpawnCubes();
+	//SpawnWalls();
+	/*
 	//UE_LOG(LogTemp, Warning, TEXT("the test number is saying that there should be %d number of rooms in the stack, there are %d in the stack"), TestNumber, PathStack.Num());
 	UE_LOG(LogTemp, Warning, TEXT("the num of cells in the dungeon is: %d"), NumOfCellsInDungeon);
 	UE_LOG(LogTemp, Warning, TEXT("the number of rooms in the path is: %d"), PathStack.Num());
 	UE_LOG(LogTemp, Warning, TEXT("the number of fight rooms is %d the number of puzzle rooms is %d the number of treasure rooms is %d the number of dead rooms is %d"),NumOfFightRooms,NumOfPuzzleRooms,NumOfTreasureRooms,NumOfDeadRooms);
 	UE_LOG(LogTemp, Warning, TEXT("the order of the room types in the path is:"));
+	*/
 	TArray<int> RoomOrder;
 	FString RoomOrderContent;
 	for(int i = 0; i < PathStack.Num(); i++)
@@ -90,6 +98,66 @@ void ADungeonGenerator::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void ADungeonGenerator::NextStage()
+{
+	switch (CurrentStage)
+	{
+		case(0):
+			InitialStrCheck();
+			
+			break;
+		case(1):
+			SecondStrCheck();
+		
+			break;
+		case(2):
+			CreateRooms();
+		RoomCleanUp();
+		break;
+		
+		case(3):
+			SmallRoomCleanUp();
+		break;
+		case(4):
+			RoomAdjacentCheck();
+			RoomNeighbourUpdate();
+			MinRoomAdjacentCleanUp();
+		break;
+		case(5):
+			RoomNeighbourUpdate();
+		RoomAdjacentCheck();
+		RoomNeighbourUpdate();
+		RoomWallSet();
+		AddRoomsToIgnoreList();
+		SetRoomPos();
+		break;
+		case(6):
+			PickStartAndEndRooms();
+		StartPathFinding();
+		CleanWAllsBetweenRooms();
+		SetRoomTypes();
+		SetGridRooms();
+		break;
+		case(7):
+			SpawnWalls();
+		break;
+		case (8):
+			DeleteTheNonRooms();
+			break;
+		default:
+			break;
+		
+	}
+	UpdateWorld();
+	UE_LOG(LogTemp,Warning,TEXT("current stage: %d"), CurrentStage);
+	CurrentStage++;
+	if(CurrentStage < 9)
+	{
+		GetWorldTimerManager().SetTimer(TimerHandle, this, &ADungeonGenerator::NextStage,1.0f,false);
+	}
+	
 }
 
 void ADungeonGenerator::SetGridUp()
@@ -744,42 +812,7 @@ void ADungeonGenerator::RoomWallSet()
 		}
 	}
 
-	/*for(int i = 0; i < DungeonRooms.Num();i++)
-	{
-		for(int p = 0; p < DungeonRooms[i].Room.Num(); p++)
-		{
-			if(DungeonRooms[i].Room[p].IsWall)
-			{
-				continue;
-			}
-			int NeighboursThatAreWalls = 0;
-			for(int n = 0; n < DungeonRooms[i].Room[p].Neighbours.Num(); n++)
-			{
-				if(TheGrid[DungeonRooms[i].Room[p].Neighbours[n].CellPos.X][DungeonRooms[i].Room[p].Neighbours[n].CellPos.Y].IsWall)
-				{
-					NeighboursThatAreWalls++;
-				}
-			}
-
-			if(NeighboursThatAreWalls >= 2)
-			{
-				DungeonRooms[i].Room[p].IsWall = true;
-				TheGrid[DungeonRooms[i].Room[p].CellPos.X][DungeonRooms[i].Room[p].CellPos.Y].IsWall = true;
-			}
-
-
-			if(DungeonRooms[i].Room[p].IsWall)
-			{
-				DungeonRooms[i].NumOfWallCells++;
-				//p = 0;
-			}
-			else
-			{
-				DungeonRooms[i].NumOfUsableCells++;
-			}
-			//p = 0;
-		}
-	}*/
+	
 	
 }
 
@@ -1215,6 +1248,19 @@ void ADungeonGenerator::SetRoomTypes()
 	
 }
 
+void ADungeonGenerator::SetGridRooms()
+{
+	for(int i = 0; i < DungeonRooms.Num(); i++)
+	{
+		for(int x = 0; x < DungeonRooms[i].Room.Num(); x++)
+		{
+			int tempX = DungeonRooms[i].Room[x].CellPos.X;
+			int tempY = DungeonRooms[i].Room[x].CellPos.Y;
+			TheGrid[tempX][tempY].CellRoomType = DungeonRooms[i].RoomType;
+		}
+	}
+}
+
 bool ADungeonGenerator::StrCheck(int x, int y, int Nx, int Ny)
 {
 	if(TheGrid[x][y].CellStrength >= TheGrid[Nx][Ny].CellStrength)
@@ -1272,26 +1318,7 @@ void ADungeonGenerator::SpawnCubes()
 
 					World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType], SpawnLocation, SpawnRotation, SpawnParams);
 					NumOfCellsInDungeon++;
-				/*
-					if(DungeonRooms[i].Room[o].IsWall)
-					{
-						World->SpawnActor<AActor>(WallList[0], SpawnLocation, SpawnRotation, SpawnParams);
-					}
-					else
-					{
-						World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
-					}*/
-					//World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
-					/*
-					if(DungeonRooms[i].RoomType == 10)
-					{
-						//UE_LOG(LogTemp, Warning, TEXT("the number of rooms allowed to be the end point are : %d"),RoomsAllowed.Num());
-					}
-					else
-					{
-						World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
-					}*/
-					//World->SpawnActor<AActor>(CubeList[DungeonRooms[i].RoomType-1], SpawnLocation, SpawnRotation, SpawnParams);
+				
 				}
 			}
 		}
@@ -1332,6 +1359,83 @@ void ADungeonGenerator::SpawnWalls()
 			}
 		}
 	}
+}
+
+void ADungeonGenerator::BuildWorld()
+{
+	UWorld* const World = GetWorld();
+	if(World)
+	{
+		int CurrentRoomInPath = 0;
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = GetInstigator();
+		SpawnedActors.SetNum(GridSize);
+		for(int x = 0; x < GridSize; x++)
+		{
+			SpawnedActors[x].SetNum(GridSize);
+			for(int y = 0; y < GridSize; y++)
+			{
+				FVector SpawnLocation = FVector(x*100,y*100 ,0*CurrentRoomInPath);
+					
+				FRotator SpawnRotation = FRotator(0.0f,0.0f,0.0f);
+
+				ABaseTileGrid* Tile = World->SpawnActor<ABaseTileGrid>(ABaseTileGrid::StaticClass(), SpawnLocation, SpawnRotation, SpawnParams);
+				Tile->SetTileMat(TileMats[TheGrid[x][y].CellRoomType]);
+				SpawnedActors[x][y] = Tile;	
+				//NumOfCellsInDungeon++;
+			}
+		}
+		
+		
+	}
+	
+}
+
+void ADungeonGenerator::UpdateWorld()
+{
+	for(int x = 0; x < GridSize; x++)
+	{
+		for(int y = 0; y < GridSize;y++)
+		{
+			SpawnedActors[x][y]->SetTileMat(TileMats[TheGrid[x][y].CellRoomType]);
+		}
+	}
+}
+
+void ADungeonGenerator::DeleteTheNonRooms()
+{
+	TArray<ABaseTileGrid*> TileToDelete;
+	for(int i = 0; i < DungeonRooms.Num();i++)
+	{
+		bool DeleteRoom = true;
+			
+		for(int t = 0; t < PathStack.Num(); t++)
+		{
+			if(DungeonRooms[i].RoomID == PathStack[t])
+			{
+				DeleteRoom = false;
+				
+				break;
+			}
+		}
+
+		if(DeleteRoom)
+		{
+			for(int p = 0; p < DungeonRooms[i].Room.Num(); p++)
+			{
+				int tempX = DungeonRooms[i].Room[p].CellPos.X;
+				int tempY = DungeonRooms[i].Room[p].CellPos.Y;
+				TileToDelete.Add(SpawnedActors[tempX][tempY]);
+			}
+		}
+	}
+
+	for(int d = 0; d < TileToDelete.Num(); d++)
+	{
+		TileToDelete[d]->Destroy();
+	}
+	
 }
 
 

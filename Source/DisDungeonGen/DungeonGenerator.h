@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BaseTileGrid.h"
 #include "GameFramework/Actor.h"
 #include "CommonStructs.h"
 #include "DungeonGenerator.generated.h"
@@ -29,9 +30,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	TArray<TSubclassOf<AActor>> CubeList;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
+	TArray<UMaterialInterface*> TileMats;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	TArray<TSubclassOf<AActor>> WallList;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	float MinDistBetweenStartAndEnd;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
+	TArray<TArray<ABaseTileGrid*>> SpawnedActors;
+	//TArray<TArray<ABaseTileGrid>> SpawnedActors;
 
 protected:
 	// Called when the game starts or when spawned
@@ -45,6 +51,7 @@ private:
 	
 	TArray<TArray<FDungeonCell>> TheGrid;
 
+	void NextStage();
 	void SetGridUp();
 	void SetCellStrAndType();
 	void SetCellhood();
@@ -75,8 +82,15 @@ private:
 	bool IsNextRoomAllowed(int CurrentRoomIndex);
 	void CleanWAllsBetweenRooms();
 	void SetRoomTypes();
+	void SetGridRooms();
 	void SpawnCubes();
 	void SpawnWalls();
+
+	void BuildWorld();
+	void UpdateWorld();
+
+
+	void DeleteTheNonRooms();
 
 
 	bool StrCheck(int x, int y, int Nx, int Ny);
@@ -111,7 +125,10 @@ private:
 	float BasePuzzleChance;
 	float BaseTreasureChance;
 	float BaseFightChance;
-	
+
+	int CurrentStage;
+
+	FTimerHandle TimerHandle;
 
 };
 
