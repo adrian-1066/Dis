@@ -28,6 +28,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	int MaxRoomSizeByCell;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
+	int DungeonSize;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	TArray<TSubclassOf<AActor>> CubeList;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Dungeon settings")
 	TArray<UMaterialInterface*> TileMats;
@@ -80,6 +82,11 @@ private:
 	void StartPathFinding();
 	int NextRoomInPath(int CurrentRoomID);
 	bool IsNextRoomAllowed(int CurrentRoomIndex);
+
+	void NewPathAlgo();
+	int NextRoomInNewPath(int CurrentRoomID);
+	bool NextAllowed(int NextRoomIndex);
+	
 	void CleanWAllsBetweenRooms();
 	void SetRoomTypes();
 	void SetGridRooms();

@@ -950,10 +950,26 @@ void ADungeonGenerator::StartPathFinding()
 			CurrentRoomID = NextRoomID;
 			PathStack.Push(CurrentRoomID);
 			TestNumber++;
+			/*
 			if(NextRoomID == EndRoomID)
 			{
 				PathAtEndPoint = true;
+			}*/
+		}
+
+		if(TestNumber >= DungeonSize)
+		{
+			int CurrentRoomIndex = -1;
+			for(int i = 0; i < DungeonRooms.Num();i++)
+			{
+				if(DungeonRooms[i].RoomID == CurrentRoomID)
+				{
+					CurrentRoomIndex = i;
+				}
+				
 			}
+			EndRoomID = DungeonRooms[CurrentRoomIndex].RoomID;
+			PathAtEndPoint = true;
 		}
 		
 	}
@@ -1013,6 +1029,7 @@ int ADungeonGenerator::NextRoomInPath(int CurrentRoomID)
 
 bool ADungeonGenerator::IsNextRoomAllowed(int NextRoomIndex)
 {
+	/*
 	if(DungeonRooms[NextRoomIndex].RoomID == EndRoomID)
 	{
 		if(NumOfRoomsInCurrentPath >= MinNumberOfRoomsAllowedInPath)
@@ -1023,10 +1040,87 @@ bool ADungeonGenerator::IsNextRoomAllowed(int NextRoomIndex)
 		{
 			return false;
 		}
-	}
+	}*/
 
 	
 
+	for(int i = 0; i < RoomsToIgnore.Num();i++)
+	{
+		if(DungeonRooms[NextRoomIndex].RoomID == RoomsToIgnore[i])
+		{
+			return false;
+		}
+	}
+
+	for(int i = 0; i < PathStack.Num(); i++)
+	{
+		if(DungeonRooms[NextRoomIndex].RoomID == PathStack[i])
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void ADungeonGenerator::NewPathAlgo()
+{
+
+	
+}
+
+int ADungeonGenerator::NextRoomInNewPath(int CurrentRoomID)
+{
+	bool NextRoomAllowed = false;
+	int CurrentRoomIndex = -1;
+	for(int i = 0; i < DungeonRooms.Num();i++)
+	{
+		if(DungeonRooms[i].RoomID == CurrentRoomID)
+		{
+			CurrentRoomIndex = i;
+		}
+	}
+
+	//UE_LOG(LogTemp,Warning,TEXT("current room index is %d for room ID %d"), CurrentRoomIndex, CurrentRoomID);
+
+	if(DungeonRooms[CurrentRoomIndex].AdjRoomIDs.Num() <= 0)
+	{
+		return -1;
+	}
+
+	TArray<int> AllowedRooms;
+
+	for(int i = 0; i < DungeonRooms[CurrentRoomIndex].AdjRoomIDs.Num(); i++)
+	{
+		int RoomIDIndex;
+		for(int x = 0; x <DungeonRooms.Num();x++)
+		{
+			if(DungeonRooms[x].RoomID == DungeonRooms[CurrentRoomIndex].AdjRoomIDs[i])
+			{
+				
+				RoomIDIndex = x;
+			}
+		}
+		if(NextAllowed(RoomIDIndex))
+		{
+			if(DungeonRooms[RoomIDIndex].RoomID != CurrentRoomID)
+			{
+				AllowedRooms.Add(DungeonRooms[CurrentRoomIndex].AdjRoomIDs[i]);
+			}
+		}
+	}
+	if(AllowedRooms.Num() > 0)
+	{
+		int NextRoom = GetRandomIntInRange(1, AllowedRooms.Num()) - 1;
+		
+		return AllowedRooms[NextRoom];
+	}
+	//int NextRoom = GetRandomIntInRange(1, AllowedRooms.Num()) - 1;
+	RoomsToIgnore.Add(CurrentRoomID);
+	return -1;
+}
+
+bool ADungeonGenerator::NextAllowed(int NextRoomIndex)
+{
 	for(int i = 0; i < RoomsToIgnore.Num();i++)
 	{
 		if(DungeonRooms[NextRoomIndex].RoomID == RoomsToIgnore[i])
